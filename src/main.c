@@ -1,21 +1,30 @@
 #define METAR_KEY 0
+#define LAST_METAR 1
 
 #include <pebble.h>
 
 static Window *s_main_window;
+static TextLayer *name_layer;
 static TextLayer *s_time_layer;
 static TextLayer *metar_layer;
+static char old_buffer[512];
+static char METAR_buffer[512];
 
 static void update_time(){
   time_t temp = time(NULL);
   struct tm *tick_time = localtime(&temp);
+  struct tm *zulu_time = gmtime(&temp);
   
   
   static char s_buffer[8];
+  static char z_buffer[8];
   strftime(s_buffer, sizeof(s_buffer), clock_is_24h_style() ?
-                                          "%H:%M" : "%I:%M", tick_time);
+                                          "%H%MR" : "%I%M", tick_time);
+  strftime(z_buffer, sizeof(z_buffer), clock_is_24h_style() ?
+                                          "%H%MZ" : "%I%M", zulu_time);
   
   text_layer_set_text(s_time_layer, s_buffer);
+  text_layer_set_text(name_layer, z_buffer);
 }
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
@@ -38,19 +47,29 @@ static void main_window_load(Window *window){
   Layer *window_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(window_layer);
   
-  s_time_layer = text_layer_create(GRect(0,PBL_IF_ROUND_ELSE(58, 0),bounds.size.w, 50));
+  name_layer = text_layer_create(GRect(0, PBL_IF_ROUND_ELSE(0,10), bounds.size.w, 15));
+  text_layer_set_background_color(name_layer, GColorClear);
+  text_layer_set_text_color(name_layer, GColorWhite);
+  text_layer_set_text_alignment(name_layer, GTextAlignmentCenter);
+  //For Natalia's version
+  //text_layer_set_text(name_layer, "For Natalia Godwinska");
+  text_layer_set_font(name_layer, fonts_get_system_font(FONT_KEY_GOTHIC_14));
+  layer_add_child(window_layer, text_layer_get_layer(name_layer));
+  
+  s_time_layer = text_layer_create(GRect(0,PBL_IF_ROUND_ELSE(58, 25),bounds.size.w, 45));
   text_layer_set_background_color(s_time_layer, GColorClear);
-  text_layer_set_text_color(s_time_layer, GColorBlack);
+  text_layer_set_text_color(s_time_layer, GColorWhite);
   text_layer_set_text_alignment(s_time_layer, GTextAlignmentCenter);
   text_layer_set_font(s_time_layer, fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD));
   layer_add_child(window_layer, text_layer_get_layer(s_time_layer));
   
-  metar_layer = text_layer_create(GRect(0, PBL_IF_ROUND_ELSE(125,70), bounds.size.w, 100));
+  metar_layer = text_layer_create(GRect(0, PBL_IF_ROUND_ELSE(125,80), bounds.size.w, 100));
   text_layer_set_background_color(metar_layer, GColorClear);
-  text_layer_set_text_color(metar_layer, GColorBlack);
-  text_layer_set_text_alignment(metar_layer, GTextAlignmentLeft);
+  text_layer_set_text_color(metar_layer, GColorWhite);
+  text_layer_set_text_alignment(metar_layer, GTextAlignmentCenter);
   text_layer_set_overflow_mode(metar_layer, GTextOverflowModeWordWrap);
-  
+  text_layer_set_font(metar_layer, fonts_get_system_font(FONT_KEY_GOTHIC_14));
+  text_layer_set_text(metar_layer, old_buffer);
   layer_add_child(window_layer, text_layer_get_layer(metar_layer));
 }
 
@@ -59,16 +78,14 @@ static void main_window_unload(Window *window){
   text_layer_destroy(metar_layer);
 }
 
-static void inbox_received_callback(DictionaryIterator *iterator, void *context){
-  static char METAR_buffer[512];
+static void inbox_received_callback(DictionaryIterator *iterator, void *context){  
   Tuple *METAR_tuple = dict_find(iterator, METAR_KEY);
   
-  if (METAR_tuple){
+  text_layer_set_text(metar_layer, old_buffer);
+  if (METAR_tuple -> value -> cstring){
     snprintf(METAR_buffer, sizeof(METAR_buffer), "%s", METAR_tuple -> value -> cstring);
     text_layer_set_text(metar_layer, METAR_buffer);
-    
-  } else {
-    text_layer_set_text(metar_layer, "Uh oh");
+    strcpy(old_buffer, METAR_buffer);
   }
 }
 
@@ -85,9 +102,14 @@ static void outbox_sent_callback(DictionaryIterator *iterator, void *context){
 }
 
 void init(){
+  if (persist_exists(LAST_METAR)) {
+    persist_read_string(LAST_METAR, old_buffer, sizeof(old_buffer));
+  }
   
   tick_timer_service_subscribe(MINUTE_UNIT,tick_handler);
   s_main_window = window_create();
+  
+  window_set_background_color(s_main_window, GColorBlack);
   
   window_set_window_handlers(s_main_window, (WindowHandlers){
     .load = main_window_load,
@@ -110,6 +132,7 @@ void init(){
 
 void deinit(){
   window_destroy(s_main_window);
+  persist_write_string(LAST_METAR, old_buffer);
 }
 
 int main(){

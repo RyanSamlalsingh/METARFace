@@ -50,7 +50,6 @@ static void main_window_load(Window *window){
   text_layer_set_text_color(metar_layer, GColorBlack);
   text_layer_set_text_alignment(metar_layer, GTextAlignmentLeft);
   text_layer_set_overflow_mode(metar_layer, GTextOverflowModeWordWrap);
-  text_layer_set_text(metar_layer, "wut");
   
   layer_add_child(window_layer, text_layer_get_layer(metar_layer));
 }

@@ -3,6 +3,7 @@
 #include <pebble.h>
 
 static Window *s_main_window;
+static TextLayer *name_layer;
 static TextLayer *s_time_layer;
 static TextLayer *metar_layer;
 
@@ -13,7 +14,8 @@ static void update_time(){
   
   static char s_buffer[8];
   strftime(s_buffer, sizeof(s_buffer), clock_is_24h_style() ?
-                                          "%H:%M" : "%I:%M", tick_time);
+                                          //"%H:%M" : "%I:%M", tick_time);
+                                          "%H%MR" : "%I%MR", tick_time);
   
   text_layer_set_text(s_time_layer, s_buffer);
 }
@@ -38,19 +40,26 @@ static void main_window_load(Window *window){
   Layer *window_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(window_layer);
   
-  s_time_layer = text_layer_create(GRect(0,PBL_IF_ROUND_ELSE(58, 0),bounds.size.w, 50));
+  name_layer = text_layer_create(GRect(0, PBL_IF_ROUND_ELSE(0,10), bounds.size.w, 15));
+  text_layer_set_background_color(name_layer, GColorClear);
+  text_layer_set_text_color(name_layer, GColorWhite);
+  text_layer_set_text_alignment(name_layer, GTextAlignmentCenter);
+  text_layer_set_text(name_layer, "For Natalia Godwinska");
+  layer_add_child(window_layer, text_layer_get_layer(name_layer));
+  
+  s_time_layer = text_layer_create(GRect(0,PBL_IF_ROUND_ELSE(58, 30),bounds.size.w, 50));
   text_layer_set_background_color(s_time_layer, GColorClear);
-  text_layer_set_text_color(s_time_layer, GColorBlack);
+  text_layer_set_text_color(s_time_layer, GColorWhite);
   text_layer_set_text_alignment(s_time_layer, GTextAlignmentCenter);
   text_layer_set_font(s_time_layer, fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD));
   layer_add_child(window_layer, text_layer_get_layer(s_time_layer));
   
-  metar_layer = text_layer_create(GRect(0, PBL_IF_ROUND_ELSE(125,70), bounds.size.w, 100));
+  metar_layer = text_layer_create(GRect(0, PBL_IF_ROUND_ELSE(125,80), bounds.size.w, 100));
   text_layer_set_background_color(metar_layer, GColorClear);
-  text_layer_set_text_color(metar_layer, GColorBlack);
-  text_layer_set_text_alignment(metar_layer, GTextAlignmentLeft);
+  text_layer_set_text_color(metar_layer, GColorWhite);
+  text_layer_set_text_alignment(metar_layer, GTextAlignmentCenter);
   text_layer_set_overflow_mode(metar_layer, GTextOverflowModeWordWrap);
-  
+  text_layer_set_font(metar_layer, fonts_get_system_font(FONT_KEY_GOTHIC_14));
   layer_add_child(window_layer, text_layer_get_layer(metar_layer));
 }
 
@@ -67,8 +76,6 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     snprintf(METAR_buffer, sizeof(METAR_buffer), "%s", METAR_tuple -> value -> cstring);
     text_layer_set_text(metar_layer, METAR_buffer);
     
-  } else {
-    text_layer_set_text(metar_layer, "Uh oh");
   }
 }
 
@@ -88,6 +95,8 @@ void init(){
   
   tick_timer_service_subscribe(MINUTE_UNIT,tick_handler);
   s_main_window = window_create();
+  
+  window_set_background_color(s_main_window, GColorBlack);
   
   window_set_window_handlers(s_main_window, (WindowHandlers){
     .load = main_window_load,

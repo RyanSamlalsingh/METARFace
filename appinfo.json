@@ -1,0 +1,27 @@
+{
+    "appKeys": {
+        "METAR_KEY": 0
+    },
+    "capabilities": [
+        ""
+    ],
+    "companyName": "medialdemocrat@ymail.com",
+    "enableMultiJS": true,
+    "longName": "METARface",
+    "projectType": "native",
+    "resources": {
+        "media": []
+    },
+    "sdkVersion": "3",
+    "shortName": "METARface",
+    "targetPlatforms": [
+        "aplite",
+        "basalt",
+        "chalk"
+    ],
+    "uuid": "08a82433-ad7c-4826-8621-b6fa75f4bd96",
+    "versionLabel": "1.0",
+    "watchapp": {
+        "watchface": false
+    }
+}

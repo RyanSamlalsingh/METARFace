@@ -36,6 +36,8 @@ function getMetar(){
   
 }
 
+
+
 // Listen for when the watchface is opened
 Pebble.addEventListener('ready', 
   function(e) {
